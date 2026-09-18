@@ -9,9 +9,6 @@ permissions:
   contents: read
   pages: write
   id-token: write
-  # Needed only so `configure-pages` can turn Pages on automatically the
-  # first time this runs, if it hasn't been enabled in the repo yet.
-  administration: write
 
 # Only one deployment at a time; let in-progress runs finish rather than
 # canceling them mid-publish.
