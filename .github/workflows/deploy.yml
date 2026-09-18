@@ -1,0 +1,75 @@
+# Workflow name — shown in the GitHub Actions tab as the run's title.
+name: Deploy to GitHub Pages
+
+# When this workflow runs.
+on:
+  push:
+    branches: [main]   # run automatically on every push to main
+  workflow_dispatch:    # also adds a manual "Run workflow" button in the Actions tab
+
+# What GITHUB_TOKEN (the auto-generated token for this run) is allowed to do.
+permissions:
+  contents: read    # only needs to read the repo's files (checkout)
+  pages: write      # required to publish to GitHub Pages
+  id-token: write   # required so deploy-pages can authenticate via OIDC instead of a stored secret
+
+# Stops two deploys from racing each other if you push twice in a row.
+concurrency:
+  group: pages               # any run in this group queues behind the one before it
+  cancel-in-progress: false  # let an in-flight deploy finish instead of killing it mid-publish
+
+jobs:
+  # ---------- Job 1: build the app and package it for Pages ----------
+  build:
+    runs-on: ubuntu-latest   # the VM image the job runs on
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        # Downloads your repo's code into the runner's working directory.
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20   # match a Node version your app supports
+          cache: npm         # cache ~/.npm between runs so npm ci is faster
+
+      - name: Install dependencies
+        run: npm ci
+        # Clean install from package-lock.json — deterministic, unlike `npm install`.
+
+      - name: Lint
+        run: npm run lint
+        # Fails the workflow early if oxlint finds problems, before wasting time building.
+
+      - name: Build
+        run: npm run build
+        # Runs Vite's production build; output goes to dist/ (see vite.config.js base: './').
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+        # Asks the Pages API for this repo's config (e.g. base path).
+        # Must run before the artifact upload step below.
+
+      - name: Upload build artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist   # the folder Vite just built — this gets zipped as a
+                       # special "github-pages" artifact for the deploy job to use
+
+  # ---------- Job 2: publish the artifact from Job 1 ----------
+  deploy:
+    needs: build   # don't start until build finishes successfully
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      # ^ ties this run to GitHub's "github-pages" deployment environment
+      #   (created automatically once Pages is enabled for the repo).
+      url: ${{ steps.deployment.outputs.page_url }}
+      # ^ pulls the live URL from the deploy step below and shows it on the run summary.
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment   # lets the `environment.url` line above reference this step's output
+        uses: actions/deploy-pages@v4
+        # Publishes the uploaded artifact to Pages. This is the exact step that
+        # 404'd before — it needs Pages enabled once via
+        # Settings → Pages → Build and deployment → Source → GitHub Actions.
