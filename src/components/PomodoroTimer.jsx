@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 
-const DURATIONS = { work: 25 * 60, short: 5 * 60, long: 15 * 60 };
+const DEFAULT_DURATIONS_MIN = { work: 25, short: 5, long: 15 };
 const LABELS = { work: 'Focus', short: 'Short break', long: 'Long break' };
+
+function clampMinutes(value) {
+  return Math.max(1, Math.min(180, Math.round(Number(value)) || 1));
+}
 
 function playChime() {
   try {
@@ -30,6 +35,13 @@ function notify(title, body) {
 
 export default function PomodoroTimer({ openTasks, focusTaskId, setFocusTaskId, onWorkSessionComplete, expandTrigger }) {
   const [collapsed, setCollapsed] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
+  const [durationsMin, setDurationsMin] = useLocalStorage('todo:pomodoro-durations', DEFAULT_DURATIONS_MIN);
+  const DURATIONS = {
+    work: durationsMin.work * 60,
+    short: durationsMin.short * 60,
+    long: durationsMin.long * 60,
+  };
 
   useEffect(() => {
     if (expandTrigger) setCollapsed(false);
@@ -40,6 +52,17 @@ export default function PomodoroTimer({ openTasks, focusTaskId, setFocusTaskId, 
   const [remaining, setRemaining] = useState(DURATIONS.work);
   const [sessionsCompleted, setSessionsCompleted] = useState(0);
   const endAtRef = useRef(null);
+
+  // Keep the countdown in sync with duration edits, but never yank time
+  // away from a session that's actively running.
+  useEffect(() => {
+    if (!running) setRemaining(DURATIONS[mode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [durationsMin, mode]);
+
+  function updateDuration(key, value) {
+    setDurationsMin((prev) => ({ ...prev, [key]: clampMinutes(value) }));
+  }
 
   useEffect(() => {
     if (!running) return undefined;
@@ -118,7 +141,23 @@ export default function PomodoroTimer({ openTasks, focusTaskId, setFocusTaskId, 
           <span className={`pomo-mode-dot ${mode !== 'work' ? 'break' : ''}`} />
           {collapsed ? `${mm}:${ss} · ${LABELS[mode]}` : LABELS[mode]}
         </span>
-        <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{collapsed ? '▲' : '▼'}</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {!collapsed && (
+            <button
+              className="icon-btn"
+              style={{ width: 22, height: 22 }}
+              title={running ? 'Pause the timer to edit durations' : 'Customize durations'}
+              disabled={running}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowSettings((v) => !v);
+              }}
+            >
+              ⚙
+            </button>
+          )}
+          <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{collapsed ? '▲' : '▼'}</span>
+        </span>
       </div>
 
       {!collapsed && (
@@ -126,6 +165,24 @@ export default function PomodoroTimer({ openTasks, focusTaskId, setFocusTaskId, 
           <div className="pomo-time">
             {mm}:{ss}
           </div>
+
+          {showSettings && (
+            <div className="pomo-durations">
+              {['work', 'short', 'long'].map((key) => (
+                <label key={key}>
+                  {LABELS[key]}
+                  <input
+                    type="number"
+                    min={1}
+                    max={180}
+                    value={durationsMin[key]}
+                    onChange={(e) => updateDuration(key, e.target.value)}
+                  />
+                  m
+                </label>
+              ))}
+            </div>
+          )}
 
           <select
             className="pomo-task-select"
