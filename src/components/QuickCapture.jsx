@@ -27,8 +27,7 @@ const QuickCapture = forwardRef(function QuickCapture({ onAdd }, ref) {
         </button>
       </form>
       <div className="quick-capture-hint">
-        <code>!h</code>/<code>!m</code>/<code>!l</code> priority · <code>#tag</code> category ·{' '}
-        <code>@tomorrow</code> due date
+        Tip: add <code>!h</code> for priority, <code>#work</code> for a tag, <code>@friday</code> for a due date.
       </div>
     </div>
   );

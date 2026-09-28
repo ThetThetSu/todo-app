@@ -60,6 +60,14 @@ button {
   cursor: pointer;
 }
 
+/* The selects use translucent backgrounds, which the browser copies into the
+   popup list on a white base. Give the options an opaque dark surface so the
+   light text stays readable. */
+select option {
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
 ::selection {
   background: color-mix(in srgb, var(--accent) 40%, transparent);
 }
@@ -405,17 +413,18 @@ button {
   pointer-events: auto;
 }
 .quick-capture-hint {
-  font-size: 11.5px;
-  color: var(--text-muted);
-  padding: 0 8px 10px 18px;
-  margin-top: -8px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  padding: 10px 8px 0 18px;
 }
 .quick-capture-hint code {
   background: var(--surface-2);
   border: 1px solid var(--border-soft);
   border-radius: 4px;
-  padding: 1px 5px;
+  padding: 1px 6px;
   font-family: inherit;
+  color: var(--text-primary);
 }
 
 .task-list {
@@ -440,23 +449,15 @@ button {
   display: flex;
   flex-direction: column;
   border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  /* The priority color outlines and lightly tints the whole card. */
+  border: 1px solid color-mix(in srgb, var(--p-color, var(--border)) 75%, transparent);
+  background: color-mix(in srgb, var(--p-color, transparent) 14%, var(--surface));
   transition: border-color 0.15s, transform 0.12s, box-shadow 0.15s;
   position: relative;
   overflow: hidden;
 }
-.task-item::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: var(--p-color, var(--border));
-}
 .task-item:hover {
-  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--p-color, var(--border)) 35%, transparent);
 }
 .task-item.dragging {
   opacity: 0.4;
@@ -466,9 +467,6 @@ button {
 }
 .task-item.done {
   opacity: 0.55;
-}
-.task-item.overdue {
-  border-color: color-mix(in srgb, var(--critical) 45%, var(--border));
 }
 
 .task-row {
