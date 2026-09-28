@@ -92,7 +92,7 @@ export default function App() {
 
   const counts = useMemo(
     () => ({
-      all: baseFiltered.length,
+      all: baseFiltered.filter((t) => !t.done).length,
       today: baseFiltered.filter((t) => isDueToday(t.dueDate)).length,
       upcoming: baseFiltered.filter((t) => isUpcoming(t.dueDate)).length,
       overdue: baseFiltered.filter((t) => isOverdue(t.dueDate, t.done)).length,
@@ -112,7 +112,8 @@ export default function App() {
       case 'completed':
         return baseFiltered.filter((t) => t.done);
       default:
-        return baseFiltered;
+        // "All" is the working list; finished tasks live under Completed.
+        return baseFiltered.filter((t) => !t.done);
     }
   }, [baseFiltered, view]);
 
@@ -265,7 +266,11 @@ export default function App() {
             onFocusPomodoro={handleFocusPomodoro}
             onReorder={handleReorder}
             emptyMessage={
-              hasActiveFilters ? 'No tasks match your filters.' : 'Nothing here yet — add your first task above.'
+              hasActiveFilters
+                ? 'No tasks match your filters.'
+                : view === 'all' && tasks.length > 0
+                  ? 'All caught up — finished tasks are under Completed.'
+                  : 'Nothing here yet — add your first task above.'
             }
           />
         </main>
